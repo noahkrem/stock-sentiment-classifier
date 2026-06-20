@@ -3,12 +3,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: var(--font-sans); }
 .plan { padding: 1.5rem 0; }
+.pivot-banner { border: 1px solid var(--color-border-info); background: var(--color-background-info); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+.pivot-banner-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+.pivot-banner-text { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
 .section-label { font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-tertiary); margin-bottom: 10px; }
 .card { border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1rem; background: var(--color-background-secondary); }
 .card-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
 .card-sub { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 10px; line-height: 1.5; }
 
-/* Sprint header */
 .sprint { border-radius: var(--border-radius-lg); margin-bottom: 1.25rem; overflow: hidden; border: 1px solid var(--color-border-tertiary); }
 .sprint-header { padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; }
 .sprint-0 .sprint-header { background: var(--color-background-info); }
@@ -26,25 +28,24 @@ body { font-family: var(--font-sans); }
 .deliverable { display: inline-block; margin-top: 5px; font-size: 11px; background: var(--color-background-primary); border: 1px solid var(--color-border-secondary); border-radius: 999px; padding: 2px 8px; color: var(--color-text-secondary); }
 .task-hrs { min-width: 44px; text-align: right; font-size: 12px; color: var(--color-text-tertiary); padding-top: 2px; white-space: nowrap; }
 
-/* Scope cuts */
 .cut-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--color-border-tertiary); }
 .cut-item:last-child { border-bottom: none; }
 .cut-badge { flex-shrink: 0; font-size: 11px; font-weight: 500; color: var(--color-text-danger); background: var(--color-background-danger); border-radius: 999px; padding: 2px 8px; margin-top: 1px; }
+.cut-badge.keep { color: var(--color-text-success); background: var(--color-background-success); }
 .cut-text { font-size: 13px; color: var(--color-text-secondary); line-height: 1.5; }
 .cut-reason { font-size: 12px; color: var(--color-text-tertiary); margin-top: 2px; }
 
-/* Dir tree */
 .tree { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary); line-height: 1.85; background: var(--color-background-primary); border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 1rem 1.25rem; }
 .tree .folder { color: var(--color-text-primary); font-weight: 500; }
 .tree .comment { color: var(--color-text-tertiary); }
 .tree .file { color: var(--color-text-secondary); }
+.tree .removed { color: var(--color-text-danger); text-decoration: line-through; }
+.tree .new { color: var(--color-text-success); }
 
-/* Hours summary */
 .hours-row { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
 .hours-pill { font-size: 12px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-secondary); }
 .hours-pill strong { color: var(--color-text-primary); font-weight: 500; }
 
-/* Tabs */
 .tabs { display: flex; gap: 4px; margin-bottom: 1.25rem; flex-wrap: wrap; }
 .tab { padding: 6px 14px; border-radius: 999px; font-size: 13px; cursor: pointer; border: 1px solid var(--color-border-tertiary); background: transparent; color: var(--color-text-secondary); transition: all .15s; }
 .tab.active { background: var(--color-text-primary); color: var(--color-background-primary); border-color: transparent; }
@@ -53,6 +54,11 @@ body { font-family: var(--font-sans); }
 </style>
 
 <div class="plan">
+
+<div class="pivot-banner">
+  <div class="pivot-banner-title">⟲ Pivot — June 20, 2026</div>
+  <div class="pivot-banner-text">Dropped news headlines / NLP entirely. New approach: train a 3-class classifier on AMZN price movement using an "aggregate volatility index" built from 5 relevant volatility indexes, scraped over a 10-year window. Same milestone dates. Label scheme (Positive/Neutral/Negative, mapped to 1–9 display score) is unchanged — only the input features and source data changed.</div>
+</div>
 
 <div class="tabs">
   <button class="tab active" onclick="show('sprints')">Sprints</button>
@@ -67,7 +73,7 @@ body { font-family: var(--font-sans); }
 <div class="hours-row">
   <span class="hours-pill"><strong>4 people</strong> × 15 hrs</span>
   <span class="hours-pill"><strong>60 hrs</strong> total</span>
-  <span class="hours-pill"><strong>~5 hrs</strong> buffer kept</span>
+  <span class="hours-pill"><strong>~6 hrs</strong> buffer kept</span>
 </div>
 
 <!-- Sprint 0 -->
@@ -83,38 +89,38 @@ body { font-family: var(--font-sans); }
     <div class="task-row">
       <div class="task-owner">Noah</div>
       <div class="task-content">
-        <div class="task-name">Repo & environment setup</div>
-        <div class="task-desc">GitHub repo, .gitignore, venv + requirements.txt, folder skeleton, README stub.</div>
-        <span class="deliverable">📦 repo skeleton</span>
-      </div>
-      <div class="task-hrs">2 hrs</div>
-    </div>
-    <div class="task-row">
-      <div class="task-owner">Oliver</div>
-      <div class="task-content">
-        <div class="task-name">News headline scraper</div>
-        <div class="task-desc">Pull 2–3 years of AMZN headlines from Yahoo Finance RSS / CNBC. Save to CSV with date + headline columns.</div>
-        <span class="deliverable">📄 data/raw/news_raw.csv</span>
-      </div>
-      <div class="task-hrs">3 hrs</div>
-    </div>
-    <div class="task-row">
-      <div class="task-owner">Erik</div>
-      <div class="task-content">
-        <div class="task-name">Stock price loader</div>
-        <div class="task-desc">yfinance script to pull AMZN weekly close prices for the same date range. Compute weekly % return.</div>
-        <span class="deliverable">📄 data/raw/prices_raw.csv</span>
+        <div class="task-name">Repo & environment update</div>
+        <div class="task-desc">Update repo skeleton for the new scope. Remove NLP-specific deps (no more vaderSentiment/TF-IDF reliance), keep yfinance/pandas/sklearn. Update README to reflect numerical-only pipeline.</div>
+        <span class="deliverable">📦 repo skeleton v2</span>
       </div>
       <div class="task-hrs">2 hrs</div>
     </div>
     <div class="task-row">
       <div class="task-owner">Jag</div>
       <div class="task-content">
-        <div class="task-name">Dataset labeling script</div>
-        <div class="task-desc">Join headlines to next-week return. Label: return > +2% → Positive (7–9), ≤ -2% → Negative (1–3), else Neutral (4–6). Produces the training CSV.</div>
-        <span class="deliverable">📄 data/processed/labeled.csv</span>
+        <div class="task-name">Select 5 volatility indexes</div>
+        <div class="task-desc">Research and finalize 5 relevant volatility/market indexes (e.g. VIX, sector ETF volatility, NASDAQ, S&P, a bond/rate volatility proxy). Confirm each has a free, scrapeable 10-year history via yfinance ticker symbol.</div>
+        <span class="deliverable">📄 docs/selected_indexes.md</span>
       </div>
-      <div class="task-hrs">3 hrs</div>
+      <div class="task-hrs">2 hrs</div>
+    </div>
+    <div class="task-row">
+      <div class="task-owner">Oliver</div>
+      <div class="task-content">
+        <div class="task-name">Index price scraper</div>
+        <div class="task-desc">yfinance script pulling 10-year daily/weekly history for all 5 chosen index tickers. Handle missing data (indexes may have different inception dates or trading holidays).</div>
+        <span class="deliverable">📄 data/raw/indexes_raw.csv</span>
+      </div>
+      <div class="task-hrs">4 hrs</div>
+    </div>
+    <div class="task-row">
+      <div class="task-owner">Erik</div>
+      <div class="task-content">
+        <div class="task-name">AMZN price scraper</div>
+        <div class="task-desc">yfinance script pulling 10-year AMZN weekly close prices, same date range as the indexes. Compute weekly % return — this becomes the label source.</div>
+        <span class="deliverable">📄 data/raw/amzn_prices_raw.csv</span>
+      </div>
+      <div class="task-hrs">2 hrs</div>
     </div>
   </div>
 </div>
@@ -123,26 +129,35 @@ body { font-family: var(--font-sans); }
 <div class="sprint sprint-1">
   <div class="sprint-header">
     <div>
-      <div class="sprint-title">Sprint 1 — NLP pipeline & model <span style="font-size:11px;color:var(--color-text-info);background:var(--color-background-info);border-radius:4px;padding:1px 6px;margin-left:4px">Milestone 1</span></div>
+      <div class="sprint-title">Sprint 1 — Feature engineering & model <span style="font-size:11px;color:var(--color-text-info);background:var(--color-background-info);border-radius:4px;padding:1px 6px;margin-left:4px">Milestone 1</span></div>
       <div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">All 4 members</div>
     </div>
     <div class="sprint-date">Due Jul 1</div>
   </div>
   <div class="sprint-body">
     <div class="task-row">
-      <div class="task-owner">Noah + Jag</div>
+      <div class="task-owner">Jag</div>
       <div class="task-content">
-        <div class="task-name">Text feature extraction</div>
-        <div class="task-desc">TF-IDF vectorizer on headlines (sklearn). Cap at ~500 features. Output: sparse feature matrix. Optionally add VADER sentiment score as a single extra feature.</div>
-        <span class="deliverable">📄 src/features.py</span>
+        <div class="task-name">Aggregate volatility index + labeling</div>
+        <div class="task-desc">Combine the 5 indexes (normalized 0–1, then weighted or simple-averaged) into one "aggregate volatility index" per week. Join to AMZN weekly return at week T+1. Label: AMZN return > +2% → Positive (7–9), ≤ -2% → Negative (1–3), else Neutral (4–6).</div>
+        <span class="deliverable">📄 data/processed/labeled.csv</span>
       </div>
       <div class="task-hrs">4 hrs</div>
+    </div>
+    <div class="task-row">
+      <div class="task-owner">Noah</div>
+      <div class="task-content">
+        <div class="task-name">Feature construction</div>
+        <div class="task-desc">Build the feature matrix: aggregate volatility index value, individual index values, week-over-week deltas for each, and a lag feature (prior week's AMZN return). Normalize with sklearn's StandardScaler/MinMaxScaler.</div>
+        <span class="deliverable">📄 src/features.py</span>
+      </div>
+      <div class="task-hrs">3 hrs</div>
     </div>
     <div class="task-row">
       <div class="task-owner">Oliver + Erik</div>
       <div class="task-content">
         <div class="task-name">Classifier training</div>
-        <div class="task-desc">Train Logistic Regression and Naive Bayes on 80/20 train-test split. Log accuracy, confusion matrix, per-class F1 to console. Pickle best model.</div>
+        <div class="task-desc">Train Logistic Regression and Random Forest on 80/20 train-test split (numerical features only, no TF-IDF). Log accuracy, confusion matrix, per-class F1. Pickle best model + scaler.</div>
         <span class="deliverable">📄 src/train.py · models/model.pkl</span>
       </div>
       <div class="task-hrs">4 hrs</div>
@@ -151,7 +166,7 @@ body { font-family: var(--font-sans); }
       <div class="task-owner">All</div>
       <div class="task-content">
         <div class="task-name">Milestone 1 review</div>
-        <div class="task-desc">Run end-to-end on full dataset. Record baseline accuracy. Agree on what to improve in Sprint 2. Commit & tag v0.1.</div>
+        <div class="task-desc">Run end-to-end on full dataset. Record baseline accuracy. Confirm 10-year volatility data actually produced enough usable rows. Commit & tag v0.1.</div>
         <span class="deliverable">📄 results/milestone1_eval.txt</span>
       </div>
       <div class="task-hrs">2 hrs</div>
@@ -173,7 +188,7 @@ body { font-family: var(--font-sans); }
       <div class="task-owner">Noah</div>
       <div class="task-content">
         <div class="task-name">CLI inference script</div>
-        <div class="task-desc">Terminal script: user inputs a headline string, script loads model, prints sentiment label + score 1–9 + confidence. MVP deliverable per proposal.</div>
+        <div class="task-desc">Terminal script: pulls the latest values for the 5 indexes automatically (live yfinance call), computes the aggregate volatility index, loads model, prints sentiment label + score 1–9.</div>
         <span class="deliverable">📄 src/predict.py</span>
       </div>
       <div class="task-hrs">3 hrs</div>
@@ -182,7 +197,7 @@ body { font-family: var(--font-sans); }
       <div class="task-owner">Oliver</div>
       <div class="task-content">
         <div class="task-name">Visualization & confusion matrix</div>
-        <div class="task-desc">matplotlib plots: confusion matrix heatmap, class distribution, feature importance (top 20 TF-IDF terms). Save as PNGs for the report.</div>
+        <div class="task-desc">matplotlib plots: confusion matrix heatmap, class distribution, feature importance (which of the 5 indexes matters most — this is now a meaningful, interpretable plot since features are numerical), aggregate index vs. AMZN price overlay chart.</div>
         <span class="deliverable">📄 results/plots/</span>
       </div>
       <div class="task-hrs">3 hrs</div>
@@ -191,7 +206,7 @@ body { font-family: var(--font-sans); }
       <div class="task-owner">Erik</div>
       <div class="task-content">
         <div class="task-name">Real-world tracking log</div>
-        <div class="task-desc">Manual paper-trading log: run predict.py on 3–5 current headlines per week for 2 weeks, record actual stock movement. Compute directional accuracy.</div>
+        <div class="task-desc">Manual paper-trading log: run predict.py weekly for 2 weeks using live index data, record actual AMZN movement. Compute directional accuracy.</div>
         <span class="deliverable">📄 results/paper_trading_log.csv</span>
       </div>
       <div class="task-hrs">3 hrs</div>
@@ -200,7 +215,7 @@ body { font-family: var(--font-sans); }
       <div class="task-owner">Jag</div>
       <div class="task-content">
         <div class="task-name">Final report writeup</div>
-        <div class="task-desc">Cover: problem framing, dataset construction, model choice rationale, results, limitations, future work. Include all plots.</div>
+        <div class="task-desc">Cover: problem framing, the pivot rationale (why volatility indexes over headlines), aggregate index construction methodology, model choice, results, limitations, future work (e.g. re-adding NLP as a second feature set). Include all plots.</div>
         <span class="deliverable">📄 report/final_report.pdf</span>
       </div>
       <div class="task-hrs">4 hrs</div>
@@ -212,48 +227,41 @@ body { font-family: var(--font-sans); }
 
 <!-- SCOPE CUTS -->
 <div class="panel" id="panel-scope">
-<p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem;line-height:1.6">The following scope items from the proposal are <strong style="color:var(--color-text-danger)">cut or deferred</strong>. Each one would consume hours that don't exist given the 15 hr/person constraint and beginner ML experience level.</p>
+<p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem;line-height:1.6">Updated for the pivot. Items below reflect what changed from the <strong>previous</strong> plan version, not the original proposal.</p>
 <div class="card" style="padding: 1rem 1.25rem;">
   <div class="cut-item">
     <span class="cut-badge">Cut</span>
     <div>
-      <div class="cut-text">Earnings call transcripts & earnings report PDFs</div>
-      <div class="cut-reason">Parsing PDFs + cleaning investor-relations prose + aligning to price events = 10+ hrs alone. Adds no incremental classification value over headlines at this stage.</div>
+      <div class="cut-text">News headlines as a feature source (entirely)</div>
+      <div class="cut-reason">Team decision: no existing dataset has enough AMZN-specific headline volume, and building one from scratch was eating Sprint 0 time. Superseded by the volatility-index approach.</div>
     </div>
   </div>
   <div class="cut-item">
     <span class="cut-badge">Cut</span>
     <div>
-      <div class="cut-text">VIX Index as a live input feature</div>
-      <div class="cut-reason">Adding a continuous numerical feature requires a separate preprocessing branch and changes the feature matrix shape. TF-IDF alone is the right first experiment; VIX can be added if time allows as a simple float column.</div>
+      <div class="cut-text">TF-IDF / NLP feature engineering (features.py rewrite)</div>
+      <div class="cut-reason">No text input means no text features. features.py is repurposed for numerical feature construction (deltas, normalization, lag features) instead.</div>
     </div>
   </div>
   <div class="cut-item">
-    <span class="cut-badge">Cut</span>
+    <span class="cut-badge keep">Kept</span>
     <div>
-      <div class="cut-text">Sector momentum (NASDAQ / S&P ETF)</div>
-      <div class="cut-reason">Same reason as VIX. These are stretch features — the model needs to prove it works on headlines first.</div>
+      <div class="cut-text">3-class label scheme (Positive/Neutral/Negative → 1–9 display score)</div>
+      <div class="cut-reason">Unchanged from the previous plan. Only the input side of the pipeline changed — the label is still derived from AMZN's next-week price return.</div>
     </div>
   </div>
   <div class="cut-item">
-    <span class="cut-badge">Cut</span>
+    <span class="cut-badge keep">Kept</span>
     <div>
-      <div class="cut-text">Score granularity 1–9 (9 discrete classes)</div>
-      <div class="cut-reason">Training a 9-class classifier on a small scraped dataset will produce near-random output. Use 3 classes (Positive / Neutral / Negative) internally; map to score ranges (7–9 / 4–6 / 1–3) only at the output display layer.</div>
+      <div class="cut-text">AMZN-only scope (no multi-company basket)</div>
+      <div class="cut-reason">The multi-ticker idea discussed earlier is no longer necessary — volatility indexes solve the data-volume problem a different way, without needing multiple companies' headlines.</div>
     </div>
   </div>
   <div class="cut-item">
-    <span class="cut-badge">Cut</span>
+    <span class="cut-badge">Watch</span>
     <div>
-      <div class="cut-text">Scheduled auto-run / cron job</div>
-      <div class="cut-reason">The proposal mentions scheduling the script at regular intervals. This is infrastructure work with no grading signal — keep it as a manual CLI run.</div>
-    </div>
-  </div>
-  <div class="cut-item">
-    <span class="cut-badge">Defer</span>
-    <div>
-      <div class="cut-text">Multi-company support</div>
-      <div class="cut-reason">Train and validate on AMZN only. Generalizing to arbitrary tickers requires data collection per-ticker. Mention this as future work in the report.</div>
+      <div class="cut-text">Project difficulty score may drop without NLP</div>
+      <div class="cut-reason">The original proposal explicitly listed NLP as a core AI technique. Since grading includes "difficulty," confirm with your TA/instructor (or re-read the rubric) that a pure numerical-features classifier still meets the bar — or consider keeping a small NLP component as a stretch feature to hedge this.</div>
     </div>
   </div>
 </div>
@@ -261,37 +269,43 @@ body { font-family: var(--font-sans); }
 
 <!-- DIR TREE -->
 <div class="panel" id="panel-dir">
-<p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem;line-height:1.6">Keep all runnable logic in <code style="font-size:12px;background:var(--color-background-primary);padding:1px 5px;border-radius:4px;border:1px solid var(--color-border-tertiary)">src/</code>, raw vs processed data separated, and nothing commited to <code style="font-size:12px;background:var(--color-background-primary);padding:1px 5px;border-radius:4px;border:1px solid var(--color-border-tertiary)">models/</code> or <code style="font-size:12px;background:var(--color-background-primary);padding:1px 5px;border-radius:4px;border:1px solid var(--color-border-tertiary)">data/</code> (gitignore those).</p>
+<p style="font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem;line-height:1.6">Updated for numerical-only pipeline. <span style="color:var(--color-text-danger)">Struck-through</span> items are removed from the previous structure; <span style="color:var(--color-text-success)">green</span> items are new.</p>
 <div class="tree">
 <span class="folder">sentiment-classifier/</span><br>
 ├── <span class="folder">data/</span>  <span class="comment"># gitignored</span><br>
 │&nbsp;&nbsp;&nbsp;├── <span class="folder">raw/</span><br>
-│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file">news_raw.csv</span>  <span class="comment"># date, headline</span><br>
-│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">prices_raw.csv</span>  <span class="comment"># date, close, weekly_return</span><br>
+│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file removed">news_raw.csv</span>  <span class="comment removed"># removed — no longer scraping headlines</span><br>
+│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="file new">indexes_raw.csv</span>  <span class="comment new"># NEW — 5 volatility indexes, 10yr history</span><br>
+│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="file">amzn_prices_raw.csv</span>  <span class="comment"># renamed from prices_raw.csv</span><br>
 │&nbsp;&nbsp;&nbsp;└── <span class="folder">processed/</span><br>
-│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">labeled.csv</span>  <span class="comment"># date, headline, label, score_range</span><br>
+│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">labeled.csv</span>  <span class="comment"># date, aggregate_vol_index, label, score_range</span><br>
+├── <span class="folder">docs/</span>  <span class="comment new"># NEW</span><br>
+│&nbsp;&nbsp;&nbsp;└── <span class="file new">selected_indexes.md</span>  <span class="comment new"># Jag's index research + rationale</span><br>
 ├── <span class="folder">src/</span><br>
-│&nbsp;&nbsp;&nbsp;├── <span class="file">scrape_news.py</span>  <span class="comment"># Oliver: headline collector</span><br>
-│&nbsp;&nbsp;&nbsp;├── <span class="file">fetch_prices.py</span>  <span class="comment"># Erik: yfinance loader</span><br>
-│&nbsp;&nbsp;&nbsp;├── <span class="file">label_data.py</span>  <span class="comment"># Jag: join + auto-label</span><br>
-│&nbsp;&nbsp;&nbsp;├── <span class="file">features.py</span>  <span class="comment"># Noah+Jag: TF-IDF + optional VADER</span><br>
+│&nbsp;&nbsp;&nbsp;├── <span class="file removed">scrape_news.py</span>  <span class="comment removed"># removed</span><br>
+│&nbsp;&nbsp;&nbsp;├── <span class="file new">scrape_indexes.py</span>  <span class="comment new"># Oliver: 5-index 10yr scraper</span><br>
+│&nbsp;&nbsp;&nbsp;├── <span class="file">fetch_prices.py</span>  <span class="comment"># Erik: AMZN price loader (10yr now)</span><br>
+│&nbsp;&nbsp;&nbsp;├── <span class="file">label_data.py</span>  <span class="comment"># Jag: build aggregate index + label</span><br>
+│&nbsp;&nbsp;&nbsp;├── <span class="file">features.py</span>  <span class="comment"># Noah: numerical features (deltas, lags, scaling)</span><br>
 │&nbsp;&nbsp;&nbsp;├── <span class="file">train.py</span>  <span class="comment"># Oliver+Erik: fit, eval, save model</span><br>
-│&nbsp;&nbsp;&nbsp;└── <span class="file">predict.py</span>  <span class="comment"># Noah: CLI inference entry point</span><br>
+│&nbsp;&nbsp;&nbsp;└── <span class="file">predict.py</span>  <span class="comment"># Noah: CLI inference, live index pull</span><br>
 ├── <span class="folder">models/</span>  <span class="comment"># gitignored</span><br>
 │&nbsp;&nbsp;&nbsp;├── <span class="file">model.pkl</span>  <span class="comment"># best trained classifier</span><br>
-│&nbsp;&nbsp;&nbsp;└── <span class="file">vectorizer.pkl</span>  <span class="comment"># fitted TF-IDF (must match model)</span><br>
+│&nbsp;&nbsp;&nbsp;└── <span class="file">scaler.pkl</span>  <span class="comment"># renamed from vectorizer.pkl — now a StandardScaler</span><br>
 ├── <span class="folder">results/</span><br>
-│&nbsp;&nbsp;&nbsp;├── <span class="file">milestone1_eval.txt</span>  <span class="comment"># accuracy + confusion matrix text</span><br>
-│&nbsp;&nbsp;&nbsp;├── <span class="file">paper_trading_log.csv</span>  <span class="comment"># Erik: manual real-world test</span><br>
+│&nbsp;&nbsp;&nbsp;├── <span class="file">milestone1_eval.txt</span><br>
+│&nbsp;&nbsp;&nbsp;├── <span class="file">paper_trading_log.csv</span><br>
 │&nbsp;&nbsp;&nbsp;└── <span class="folder">plots/</span><br>
 │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">confusion_matrix.png</span><br>
 │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file">class_distribution.png</span><br>
-│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">top_features.png</span><br>
+│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file removed">top_features.png</span>  <span class="comment removed"># was TF-IDF terms</span><br>
+│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="file new">index_importance.png</span>  <span class="comment new"># NEW — which of the 5 indexes matters most</span><br>
+│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file new">index_vs_price_overlay.png</span>  <span class="comment new"># NEW</span><br>
 ├── <span class="folder">report/</span><br>
 │&nbsp;&nbsp;&nbsp;└── <span class="file">final_report.pdf</span><br>
-├── <span class="file">requirements.txt</span>  <span class="comment"># sklearn, yfinance, pandas, matplotlib, vaderSentiment</span><br>
-├── <span class="file">.gitignore</span>  <span class="comment"># data/, models/, __pycache__, .env</span><br>
-└── <span class="file">README.md</span>  <span class="comment"># setup + usage instructions</span>
+├── <span class="file">requirements.txt</span>  <span class="comment"># yfinance, pandas, numpy, scikit-learn, matplotlib (NLP deps removed)</span><br>
+├── <span class="file">.gitignore</span><br>
+└── <span class="file">README.md</span>  <span class="comment"># updated for numerical pipeline</span>
 </div>
 </div>
 
@@ -301,36 +315,36 @@ body { font-family: var(--font-sans); }
   <div class="task-row" style="border-color:var(--color-border-tertiary)">
     <div style="min-width:90px;font-size:11px;font-weight:500;color:var(--color-text-danger);text-transform:uppercase;letter-spacing:.04em;padding-top:2px">High</div>
     <div class="task-content">
-      <div class="task-name">Data scarcity / class imbalance</div>
-      <div class="task-desc">Yahoo Finance news history is shallow and markets trend upward — Positive labels will dominate. Mitigation: use sklearn's <code>class_weight='balanced'</code>; report per-class F1, not just accuracy.</div>
+      <div class="task-name">Difficulty/grading risk from dropping NLP</div>
+      <div class="task-desc">Your original proposal lists NLP as a core technique. A pure numerical classifier is simpler to build and may read as lower-difficulty to a grader. Mitigation: confirm with the rubric/TA, or explicitly frame the aggregate-index construction and multi-source feature engineering as your difficulty driver in the report.</div>
     </div>
   </div>
   <div class="task-row" style="border-color:var(--color-border-tertiary)">
     <div style="min-width:90px;font-size:11px;font-weight:500;color:var(--color-text-danger);text-transform:uppercase;letter-spacing:.04em;padding-top:2px">High</div>
     <div class="task-content">
-      <div class="task-name">Headline → price lag mismatch</div>
-      <div class="task-desc">A headline published Friday after close belongs to next week's price movement, not the same week. Mitigation: use the next trading week's return as the label target; define this clearly in label_data.py and document it.</div>
+      <div class="task-name">Index selection may not actually predict AMZN moves</div>
+      <div class="task-desc">Broad volatility indexes (VIX, sector ETFs) are lagging/coincident indicators, not leading ones — there's a real chance the aggregate index has weak correlation with next-week AMZN return. Mitigation: Jag should sanity-check correlation between each index and AMZN return before Sprint 1 training starts, not after. A quick pandas .corr() check during index selection (Sprint 0) can catch this early.</div>
     </div>
   </div>
   <div class="task-row" style="border-color:var(--color-border-tertiary)">
     <div style="min-width:90px;font-size:11px;font-weight:500;color:var(--color-text-warning);text-transform:uppercase;letter-spacing:.04em;padding-top:2px">Medium</div>
     <div class="task-content">
-      <div class="task-name">Web scraping fragility</div>
-      <div class="task-desc">Yahoo Finance and CNBC block automated scrapers. Mitigation: use yfinance's built-in news endpoint, or pull from a free NewsAPI key (500 req/day free tier). Fallback: manually download 50–100 headlines as a CSV if APIs fail.</div>
+      <div class="task-name">10-year data availability per index</div>
+      <div class="task-desc">Some volatility/sector indexes may not have 10 years of history, or have gaps. Mitigation: Oliver should verify each ticker's earliest available date in yfinance before committing to the full 5-index list — swap out any with under ~5 years of history.</div>
     </div>
   </div>
   <div class="task-row" style="border-color:var(--color-border-tertiary)">
     <div style="min-width:90px;font-size:11px;font-weight:500;color:var(--color-text-warning);text-transform:uppercase;letter-spacing:.04em;padding-top:2px">Medium</div>
     <div class="task-content">
-      <div class="task-name">Low model accuracy</div>
-      <div class="task-desc">Headlines alone are weak predictors of short-term price. Mitigation: frame this explicitly in the report as a known limitation and an intentional first-step baseline. The grading criteria is effort + process, not accuracy.</div>
+      <div class="task-name">"Aggregate index" construction is arbitrary unless justified</div>
+      <div class="task-desc">Simply averaging 5 normalized indexes is a modeling choice that needs justification (equal weighting vs. correlation-based weighting vs. PCA). Mitigation: keep it simple (normalized average) for Milestone 1, but document the choice and mention weighting alternatives as future work — this also doubles as evidence of technical depth for the difficulty criterion.</div>
     </div>
   </div>
   <div class="task-row" style="border-bottom:none">
     <div style="min-width:90px;font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;padding-top:2px">Low</div>
     <div class="task-content">
-      <div class="task-name">Vectorizer / model version mismatch</div>
-      <div class="task-desc">If the TF-IDF vectorizer is re-fit at inference time it will produce different feature indices than the trained model expects. Mitigation: always pickle both model.pkl and vectorizer.pkl together; load both in predict.py.</div>
+      <div class="task-name">Scaler / model version mismatch</div>
+      <div class="task-desc">Same risk as before, different artifact: predict.py must load the exact StandardScaler fitted during training, not refit one — otherwise feature scale will mismatch what the model learned.</div>
     </div>
   </div>
 </div>
