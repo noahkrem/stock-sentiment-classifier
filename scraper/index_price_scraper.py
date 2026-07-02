@@ -18,6 +18,13 @@ def clean_local_csv(file_path, date_col, value_col, index_name):
     # set date as index to make merging easier
     return df[['Date', index_name]].set_index('Date')
 
+
+def resample_to_weekly(df, weekly_dates):
+    weekly_df = df.resample('W-MON').last()
+    weekly_df = weekly_df.reindex(weekly_dates)
+    return weekly_df.ffill().bfill()
+
+
 def main():
     nasdaq_file = 'NASDAQNDXT_2006_2026.csv'
     vix_file = 'VIXCLS_1990_2026.csv'
@@ -49,15 +56,16 @@ def main():
         live_df = pd.DataFrame({ticker: live_series})
         live_data_list.append(live_df)
     
-    # Start the final dataframe with a complete business day index to catch gaps
-    all_business_days = pd.date_range(start=start_date, end=end_date, freq='B')
-    total_df = pd.DataFrame(index=all_business_days)
+    # Use the same weekly anchor as the AMZN scraper output
+    weekly_dates = pd.date_range(start=start_date, end=end_date, freq='W-MON')
+    total_df = pd.DataFrame(index=weekly_dates)
     total_df.index.name = 'Date'
     
-    # Chronologically join every feature group
+    # Chronologically join every feature group after aligning to the weekly anchor
     datasets = [df_nasdaq, df_vix, df_vxazn] + live_data_list
     for dataset in datasets:
-        total_df = total_df.join(dataset, how='left')
+        weekly_dataset = resample_to_weekly(dataset, weekly_dates)
+        total_df = total_df.join(weekly_dataset, how='left')
         
     # Handle missing data 
     # ffill carries the last known price across holidays/weekends
