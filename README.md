@@ -48,3 +48,13 @@ When finished, deactivate the virtual environment by running:
 ```bash
 deactivate
 ```
+
+## Running the Labeling Pipeline
+
+To generate the labeled weekly dataset from the raw input files, run:
+
+```bash
+python3 src/label_data.py
+```
+
+This creates the output file at data/processed/labeled.csv.
