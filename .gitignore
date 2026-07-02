@@ -1,7 +1,7 @@
 # --------- START OF CUSTOM .gitignore -------------
 
 # Generated outputs
-data/
+#data/  # Not ignoring data for now because it is small and useful for testing.
 models/
 
 # ---------- END OF CUSTOM .gitignore -------------

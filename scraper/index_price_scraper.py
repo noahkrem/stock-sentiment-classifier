@@ -3,6 +3,7 @@ import sys
 import pandas as pd
 import yfinance as yf
 from datetime import datetime
+from pathlib import Path
 
 def clean_local_csv(file_path, date_col, value_col, index_name):
     df = pd.read_csv(file_path, parse_dates=[date_col])
@@ -64,9 +65,10 @@ def main():
     total_df = total_df.ffill().bfill()
     
     # Output Result in Repo Structure layout
-    output_dir = 'data'
-    os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, 'indexes_raw.csv')
+    repo_root = Path(__file__).resolve().parent.parent
+    output_dir = repo_root / 'data' / 'raw'
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir / 'indexes_raw.csv'
     
     total_df.reset_index().to_csv(output_file, index=False)
     print(f"Successfully compiled {len(total_df)} market rows.")
