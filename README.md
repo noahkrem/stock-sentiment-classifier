@@ -58,3 +58,13 @@ python3 src/label_data.py
 ```
 
 This creates the output file at data/processed/labeled.csv.
+
+## Training the model
+
+To train the model on your own machine navigate to the root directory for the project and run:
+
+```bash
+python src/train.py --data data/processed/labeled.csv --out models/model.pkl
+```
+
+This will run train.py using the data in labeled.csv and output the resulting model in the 'models' folder.
