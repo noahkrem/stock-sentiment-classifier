@@ -12,6 +12,8 @@ import os
 
 import pandas as pd
 
+import math
+
 # ── Config ────────────────────────────────────────────────────────────────────
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -124,6 +126,17 @@ def compute_aggregate_index(df: pd.DataFrame) -> pd.DataFrame:
     aggregate_vol_index per week.
     """
     index_cols = [col for col in INDEX_OUTPUT_COLS if col in df.columns]
+
+    # --- NEW: Convert annualized index values to weekly expected moves ---
+    # Since VIX and related indexes are quoted as percentages (e.g., 16.0 = 16%),
+    # dividing by sqrt(52) gives the weekly expected percentage move.
+    # For daily sqrt(252) for weekly sqrt(52)
+
+    for col in index_cols:
+        df[col] = df[col] / math.sqrt(52)
+
+    # --- END OF CHANGE: --------------------------------------------------
+    
 
     for col in index_cols:
         col_min = df[col].min()
