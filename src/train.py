@@ -128,8 +128,8 @@ def main(data_path: Path, out_path: Path):
         df[TARGET_COL].unique()
     )
 
-    X = df[feature_cols].values # feature matrix as a numpy array
-    y = df[TARGET_COL].values # target vector is the string labels
+    X = df[feature_cols].to_numpy() # feature matrix as a numpy array
+    y = df[TARGET_COL].to_numpy() # target vector is the string labels
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y  # stratify keeps porportions roughly equal for positive, negative, neutral
