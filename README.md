@@ -67,4 +67,28 @@ To train the model on your own machine navigate to the root directory for the pr
 python3 src/train.py --data data/processed/labeled.csv --out models/model.pkl
 ```
 
-This will run train.py using the data in labeled.csv and output the resulting model in the 'models' folder.
+This will run train.py using the data in labeled.csv and output the resulting model in the `models` folder.
+
+## Running inference
+
+After training, run the CLI inference script from the repository root:
+
+```bash
+python3 src/predict.py
+```
+
+This fetches the latest live index values from Yahoo Finance and predicts AMZN sentiment for the next week.
+
+To see the exact feature order expected by the loaded model, run:
+
+```bash
+python3 src/predict.py --list-features
+```
+
+To supply all feature values manually instead of using live data, use:
+
+```bash
+python3 src/predict.py --manual VALUE1 VALUE2 ...
+```
+
+The values must be provided in the same order shown by `--list-features`.
