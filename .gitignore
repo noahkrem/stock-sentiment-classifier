@@ -1,8 +1,11 @@
 # --------- START OF CUSTOM .gitignore -------------
 
 # Generated outputs
-#data/  # Not ignoring data for now because it is small and useful for testing
-models/
+# Not ignoring data for now because it is small and useful for testing
+#data/
+
+# Not ignoring models for now because it is small and useful for testing
+#models/
 
 # tests/ folder is meant to be for local verification and testing
 tests/  
