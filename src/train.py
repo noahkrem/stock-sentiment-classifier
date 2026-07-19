@@ -139,10 +139,12 @@ def main(data_path: Path, out_path: Path):
     X_train_scaled = scaler.fit_transform(X_train) # learn mean,std from thje trainging data then apply scaling
     X_test_scaled = scaler.transform(X_test) # apply same learned scaling to test data
 
-    logreg = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE) # max iterations set to 1000 (can set lower if its taking too long however it may not converge)
+    # Penalize the model for defaulting to the majority class (Neutral) by weighting classes inversely to their frequency in the training data. 
+    # This helps the model learn to predict the minority classes (Positive and Negative) better.
+    logreg = LogisticRegression(max_iter=1000, class_weight='balanced', random_state=RANDOM_STATE) # max iterations set to 1000 (can set lower if its taking too long however it may not converge)
     logreg.fit(X_train_scaled, y_train)
 
-    rf = RandomForestClassifier(n_estimators=300, random_state=RANDOM_STATE) # n_estimators=300 is the number of individual decision trees in the forest and predictions are the majority vote across all 300 trees
+    rf = RandomForestClassifier(n_estimators=300, class_weight='balanced', random_state=RANDOM_STATE) # n_estimators=300 is the number of individual decision trees in the forest and predictions are the majority vote across all 300 trees
     rf.fit(X_train_scaled, y_train) # setting n_estimators higher gets marginally better results for instance 600 (need to experiment with this more)
 
     # evaluate results
