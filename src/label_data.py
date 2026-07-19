@@ -24,9 +24,15 @@ OUTPUT_CSV = REPO_ROOT / "data" / "processed" / "labeled.csv"
 
 INDEX_OUTPUT_COLS = ["nasdaqndxt", "vix", "vxazn", "vxn", "vix3m"]
 
-# Threshold for labeling: next-week AMZN return above/below this → Positive/Negative
-POSITIVE_THRESHOLD = 0.02   # +2%
-NEGATIVE_THRESHOLD = -0.02  # -2%
+# Percentile boundaries for labeling.
+# The bottom NEGATIVE_PERCENTILE of weekly returns → Negative
+# The top (1 - POSITIVE_PERCENTILE) of weekly returns → Positive
+# Everything in between → Neutral
+# Using 0.33/0.67 produces a balanced ~33/34/33 class split regardless
+# of the return distribution, avoiding the miscalibration caused by fixed
+# thresholds (e.g. ±2% captured far too few Negative weeks for this dataset).
+NEGATIVE_PERCENTILE = 0.33
+POSITIVE_PERCENTILE = 0.67
 
 # Score ranges for display (used by predict.py, not by the classifier)
 SCORE_MAP = {"Positive": "3", "Neutral": "2", "Negative": "1"}
@@ -127,16 +133,11 @@ def compute_aggregate_index(df: pd.DataFrame) -> pd.DataFrame:
     """
     index_cols = [col for col in INDEX_OUTPUT_COLS if col in df.columns]
 
-    # --- NEW: Convert annualized index values to weekly expected moves ---
-    # Since VIX and related indexes are quoted as percentages (e.g., 16.0 = 16%),
+    # Convert annualized index values to weekly expected moves.
+    # VIX-style indexes are quoted as annualized percentages (e.g. 16.0 = 16%),
     # dividing by sqrt(52) gives the weekly expected percentage move.
-    # For daily sqrt(252) for weekly sqrt(52)
-
     for col in index_cols:
         df[col] = df[col] / math.sqrt(52)
-
-    # --- END OF CHANGE: --------------------------------------------------
-    
 
     for col in index_cols:
         col_min = df[col].min()
@@ -162,21 +163,51 @@ def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
     This means: given the volatility indexes at the END of week T,
     predict whether AMZN goes up or down NEXT week.
 
+    Thresholds are derived from the data using percentiles rather than
+    fixed values. This guarantees a balanced ~33/34/33 class split
+    regardless of the return distribution over the training window.
+
+    Thresholds are computed on the full dataset (before any train/test
+    split) so that labels are consistent across all rows.
+
     The last row is always dropped — there's no T+1 return for it.
     """
     df["amzn_next_return"] = df["amzn_close"].shift(-1) / df["amzn_close"] - 1
 
+    # ── Lag and delta features ──────────────────────────────────────────
+    index_cols = [col for col in INDEX_OUTPUT_COLS if col in df.columns]
+    for col in index_cols:
+        df[f"{col}_lag1"]  = df[col].shift(1)
+        df[f"{col}_delta"] = df[col] - df[col].shift(1)
+    df["amzn_return_lag1"] = df["amzn_next_return"].shift(1)
+    # ───────────────────────────────────────────────────────────────────
+
+    # Drop the last row (NaN next return) before computing percentiles
+    # so the thresholds aren't skewed by the NaN row.
+    valid_returns = df["amzn_next_return"].dropna()
+    neg_threshold = valid_returns.quantile(NEGATIVE_PERCENTILE)
+    pos_threshold = valid_returns.quantile(POSITIVE_PERCENTILE)
+
+    print(f"\nLabel thresholds (data-driven):")
+    print(f"  Negative : return < {neg_threshold:.4f} ({NEGATIVE_PERCENTILE*100:.0f}th percentile)")
+    print(f"  Neutral  : {neg_threshold:.4f} ≤ return ≤ {pos_threshold:.4f}")
+    print(f"  Positive : return > {pos_threshold:.4f} ({POSITIVE_PERCENTILE*100:.0f}th percentile)")
+
     def assign_label(ret):
-        if ret > POSITIVE_THRESHOLD:
+        if ret > pos_threshold:
             return "Positive"
-        if ret < NEGATIVE_THRESHOLD:
+        if ret < neg_threshold:
             return "Negative"
         return "Neutral"
 
     df["label"] = df["amzn_next_return"].apply(assign_label)
     df["score_range"] = df["label"].map(SCORE_MAP)
 
-    df = df.dropna(subset=["amzn_next_return"]).reset_index(drop=True)
+    # Drop rows with any NaN across lag/delta/return columns
+    lag_cols = [f"{col}_lag1" for col in index_cols] + \
+               [f"{col}_delta" for col in index_cols] + \
+               ["amzn_return_lag1", "amzn_next_return"]
+    df = df.dropna(subset=lag_cols).reset_index(drop=True)
 
     return df
 
@@ -185,7 +216,12 @@ def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
 
 def write_output(df: pd.DataFrame):
     index_cols = [col for col in INDEX_OUTPUT_COLS if col in df.columns]
-    out_cols = ["date"] + index_cols + ["aggregate_vol_index", "amzn_close", "amzn_next_return", "label", "score_range"]
+    lag_delta_cols = [col for col in df.columns
+                      if col.endswith("_lag1") or col.endswith("_delta")]
+
+    out_cols = (["date"] + index_cols + lag_delta_cols +
+                ["aggregate_vol_index", "amzn_close", "amzn_next_return",
+                 "label", "score_range"])
     df = df[out_cols]
 
     OUTPUT_CSV.parent.mkdir(parents=True, exist_ok=True)
