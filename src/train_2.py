@@ -41,7 +41,11 @@ NON_FEATURE_COLS = {
     "sp500_25",
     "nasdaqndxt",
     "vixcls",
-    "vxazn"
+    "vxazn",
+    # Exclude raw dollar-level SMAs (ratios like amzn_ratio_sma_20 will still be included)
+   # "amzn_sma_5", "amzn_sma_10", "amzn_sma_20",
+   # "ixic_sma_5", "ixic_sma_10", "ixic_sma_20",
+   # "spx_sma_5", "spx_sma_10", "spx_sma_20",
 }
 
 
@@ -173,11 +177,13 @@ def main(data_path: Path, out_path: Path):
 
     # 3. XGBoost
     xgb = XGBClassifier(
-        n_estimators=200, 
-        learning_rate=0.03, 
-        max_depth=4, 
-        subsample=0.8,
-        colsample_bytree=0.8,
+        n_estimators=500,       # Increase trees from 200 to 500
+        learning_rate=0.015,    # Lower learning rate for finer optimization steps
+        max_depth=3,            # Keep shallow trees (depth 3) to prevent memorizing noise
+        subsample=0.7,          # Randomly sample 70% of rows per tree
+        colsample_bytree=0.7,   # Randomly sample 70% of features per tree
+        reg_alpha=0.1,          # L1 regularization to prune unhelpful features
+        reg_lambda=1.0,         # L2 regularization to stabilize weights
         random_state=RANDOM_STATE,
         eval_metric="mlogloss"
     )
