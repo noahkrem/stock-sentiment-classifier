@@ -5,9 +5,9 @@ Trains and compares three classifiers (Logistic Regression, Random Forest, XGBoo
 to predict next-day AMZN price movement direction (Negative / Neutral / Positive) 
 from financial features, indices, and volatility metrics.
 
-Expected input: Daily labeled data CSV (e.g., data/processed/labeled_2.csv)
+Expected input: Daily labeled data CSV (e.g., data/processed/labeled_2_normalized.csv)
 Usage:
-    python src/train_2.py --data data/processed/labeled_2.csv --out models/model.pkl
+    python src/train_2.py --data data/processed/labeled_2_normalized.csv --out models/model.pkl
 """
 
 import argparse
@@ -225,7 +225,7 @@ def main(data_path: Path, out_path: Path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data", type=Path, default=Path("data/processed/labeled_2.csv"))
+    parser.add_argument("--data", type=Path, default=Path("data/processed/labeled_2_normalized.csv"))
     parser.add_argument("--out", type=Path, default=Path("models/model_2.pkl"))
     args = parser.parse_args()
     main(args.data, args.out)
