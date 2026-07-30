@@ -69,6 +69,14 @@ python3 src/train.py --data data/processed/labeled.csv --out models/model.pkl
 
 This will run train.py using the data in labeled.csv and output the resulting model in the `models` folder.
 
+## Evaluating the model
+
+To evaluate the model on your own machine navigate to the root directory for the project and run:
+
+```bash
+python3 src/evaluate_threshold.py
+```
+
 ## Running inference
 
 After training, run the CLI inference script from the repository root:
