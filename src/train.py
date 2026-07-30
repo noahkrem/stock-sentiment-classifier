@@ -22,14 +22,29 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-RANDOM_STATE = 42 # random seed so train and test can be reproduced
-TEST_SIZE = 0.20 # 20% of data left out for testing
+# Best so far: 23 state, 0.10 size. Use
+RANDOM_STATE = 23 # random seed so train and test can be reproduced 
+TEST_SIZE = 0.10 # 20% of data left out for testing
 TARGET_COL = "label" # target column to predict
 
 # Excluded columns:
 # adding in score_range yields 1.0 accuracy, adding in amzn_close yields worse f1 by about 0.1 for logistic regression but slightly better performance for random forest
 # adding in amzn_next_return yields ~0.96 for accuracy and f1, adding in date yields marginally worse results
 NON_FEATURE_COLS = {"date", TARGET_COL, "score_range",  "amzn_next_return", "amzn_close"} 
+
+
+
+# minimal non_feature_cols yields better results for labeled_2.csv (daily)
+# NON_FEATURE_COLS = {
+#     "date", TARGET_COL, "score_range", "amzn_next_return", "amzn_close",
+#     "amzn", "ixic", "nasdaqndxt", "sp500_25", "spx",
+#     "amzn_volume", "ixic_volume",
+#     "amzn_delta", "amzn_volume_delta", "ixic_delta", "ixic_volume_delta",
+#     "nasdaqndxt_delta", "sp500_25_delta", "spx_delta",
+#     "amzn_lag1", "amzn_volume_lag1", "ixic_lag1", "ixic_volume_lag1",
+#     "nasdaqndxt_lag1", "sp500_25_lag1", "spx_lag1",
+#     "vixcls_lag1", "vxazn_lag1",
+# }
 
 
 def load_data(path: Path) -> pd.DataFrame:
@@ -144,7 +159,7 @@ def main(data_path: Path, out_path: Path):
     logreg = LogisticRegression(max_iter=1000, class_weight='balanced', random_state=RANDOM_STATE) # max iterations set to 1000 (can set lower if its taking too long however it may not converge)
     logreg.fit(X_train_scaled, y_train)
 
-    rf = RandomForestClassifier(n_estimators=300, class_weight='balanced', random_state=RANDOM_STATE) # n_estimators=300 is the number of individual decision trees in the forest and predictions are the majority vote across all 300 trees
+    rf = RandomForestClassifier(n_estimators=550, max_depth=5, min_samples_leaf=15, max_features='sqrt', random_state=RANDOM_STATE) # n_estimators=300 is the number of individual decision trees in the forest and predictions are the majority vote across all 300 trees
     rf.fit(X_train_scaled, y_train) # setting n_estimators higher gets marginally better results for instance 600 (need to experiment with this more)
 
     # evaluate results
