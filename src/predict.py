@@ -11,6 +11,9 @@ Fallback usage (manual values, in the order saved by train.py):
 
     Run with --list-features first to see the exact order train.py expects.
 
+Override the confidence threshold at runtime:
+    python3 src/predict.py --threshold 0.50
+
 Sentiment score: 1-3
     1 = Negative  (AMZN expected to underperform next week)
     2 = Neutral   (No clear directional signal)
@@ -27,10 +30,7 @@ import numpy as np
 
 MODEL_PATH = "models/model.pkl"
 
-# yfinance ticker symbols keyed by the column name used in labeled.csv / features.py.
-# These must match the column names that train.py's get_feature_columns() selected.
-# If a feature column has no live ticker (e.g. a derived column like aggregate_vol_index),
-# it is filled with None and handled in build_feature_vector().
+# yfinance ticker symbols keyed by the column name used in labeled.csv.
 INDEX_TICKERS = {
     "nasdaqndxt": "^NDXT",
     "vix":        "^VIX",
@@ -60,11 +60,12 @@ def load_bundle(model_path: str) -> dict:
     Load the model bundle saved by train.py.
 
     Expected keys inside the pickle:
-        model           — fitted sklearn classifier
-        scaler          — StandardScaler fitted on X_train
-        feature_columns — ordered list of column names the model was trained on
-        classes         — class label order (e.g. ['Negative', 'Neutral', 'Positive'])
-        model_name      — 'LogisticRegression' or 'RandomForest'
+        model              — fitted sklearn classifier
+        scaler             — StandardScaler fitted on X_train
+        feature_columns    — ordered list of column names the model was trained on
+        classes            — class label order (e.g. ['Negative', 'Neutral', 'Positive'])
+        model_name         — 'LogisticRegression' or 'RandomForest'
+        confidence_threshold — optimal threshold found by train.py's tuning loop
     """
     if not os.path.exists(model_path):
         print(f"ERROR: model bundle not found at '{model_path}'.")
@@ -91,10 +92,8 @@ def fetch_live_values(feature_columns: list) -> dict:
     """
     Pull the most recent close value for each raw index via yfinance.
     Only fetches tickers for columns that appear in INDEX_TICKERS —
-    derived columns (e.g. aggregate_vol_index) are handled separately.
-
-    Returns {col_name: float} for every column in INDEX_TICKERS that
-    is also in feature_columns.
+    derived columns (e.g. aggregate_vol_index, lag/delta columns) are
+    handled in build_feature_vector() using training-set means.
 
     Raises RuntimeError if any required ticker fetch fails.
     """
@@ -103,7 +102,6 @@ def fetch_live_values(feature_columns: list) -> dict:
     except ImportError:
         raise RuntimeError("yfinance is not installed. Run: pip install yfinance")
 
-    # Only fetch tickers whose column appears in the trained feature set
     to_fetch = {col: sym for col, sym in INDEX_TICKERS.items() if col in feature_columns}
     values = {}
     failed = []
@@ -136,22 +134,13 @@ def build_feature_vector(raw_values: dict, bundle: dict) -> np.ndarray:
     """
     Build and scale the feature vector in the exact column order train.py used.
 
-    train.py derives feature_columns dynamically from the labeled CSV, so the
-    order is whatever get_feature_columns() returned at training time — and that
-    order is saved inside the bundle. We strictly follow it here.
-
-    Columns not in INDEX_TICKERS (e.g. aggregate_vol_index, or any delta/lag
-    columns Jag's label_data.py computed) cannot be fetched live. These are
-    filled with the training-set column mean (retrieved from the fitted scaler)
-    so the vector length stays correct.
-
-    A warning is printed for every filled column so the limitation is visible.
+    Columns not fetchable from live data (lag/delta/derived columns) are filled
+    with the training-set column mean from the fitted scaler so the vector
+    length and scale stay correct.
     """
     feature_columns = bundle["feature_columns"]
     scaler          = bundle["scaler"]
-
-    # scaler.mean_ holds the per-feature training mean in feature_columns order
-    train_means = scaler.mean_
+    train_means     = scaler.mean_
 
     vector = []
     filled = []
@@ -160,7 +149,6 @@ def build_feature_vector(raw_values: dict, bundle: dict) -> np.ndarray:
         if col in raw_values:
             vector.append(raw_values[col])
         else:
-            # Derived / unresolvable column — substitute training mean
             vector.append(float(train_means[i]))
             filled.append(col)
 
@@ -174,19 +162,55 @@ def build_feature_vector(raw_values: dict, bundle: dict) -> np.ndarray:
     return scaler.transform(X)
 
 
+# ── Confidence-gated prediction ───────────────────────────────────────────────
+
+def predict_with_threshold(model, X_scaled: np.ndarray,
+                           classes: list, threshold: float) -> tuple:
+    """
+    Apply the confidence-gated prediction policy.
+
+    For Negative and Positive predictions, the model must clear `threshold`
+    confidence to commit to a directional call. Below threshold, the
+    prediction falls back to Neutral — equivalent to "no position" in a
+    trading context, avoiding costly wrong-direction errors.
+
+    Neutral predictions are never gated — abstaining when the model already
+    says Neutral would be redundant.
+
+    Returns:
+        pred_label  — final label after gating ('Negative'/'Neutral'/'Positive')
+        raw_label   — what the model predicted before gating
+        confidence  — probability of the raw predicted class
+        proba       — full probability array aligned to classes
+        gated       — True if the threshold caused a fallback to Neutral
+    """
+    proba      = model.predict_proba(X_scaled)[0]
+    raw_label  = classes[int(np.argmax(proba))]
+    confidence = float(proba.max())
+
+    gated = False
+    if raw_label in ("Negative", "Positive") and confidence < threshold:
+        pred_label = "Neutral"
+        gated = True
+    else:
+        pred_label = raw_label
+
+    return pred_label, raw_label, confidence, proba, gated
+
+
 # ── Output formatting ─────────────────────────────────────────────────────────
 
 def print_prediction(raw_values: dict, X_scaled: np.ndarray,
-                     bundle: dict, source: str, show_proba: bool):
-    model       = bundle["model"]
-    classes     = bundle["classes"]   # e.g. ['Negative', 'Neutral', 'Positive']
-    model_name  = bundle.get("model_name", "Unknown")
+                     bundle: dict, source: str,
+                     show_proba: bool, threshold: float):
 
-    pred_label = model.predict(X_scaled)[0]   # string: 'Negative'/'Neutral'/'Positive'
+    model      = bundle["model"]
+    classes    = bundle["classes"]
+    model_name = bundle.get("model_name", "Unknown")
 
-    probabilities = None
-    if show_proba and hasattr(model, "predict_proba"):
-        probabilities = model.predict_proba(X_scaled)[0]
+    pred_label, raw_label, confidence, proba, gated = predict_with_threshold(
+        model, X_scaled, classes, threshold
+    )
 
     score, sentiment, description = SCORE_LABELS[pred_label]
 
@@ -195,16 +219,25 @@ def print_prediction(raw_values: dict, X_scaled: np.ndarray,
     print("─" * 54)
     print(f"  Score      : {score} / 3")
     print(f"  Sentiment  : {sentiment.upper()}")
+
+    # Show gating note inline when a fallback occurred
+    if gated:
+        print(f"  ⚑ Gated    : model predicted {raw_label} ({confidence*100:.1f}% confidence)")
+        print(f"               below threshold ({threshold:.2f}) → fell back to Neutral")
+
     print(f"  Summary    : {description}")
     print(f"  Model used : {model_name}")
+    print(f"  Threshold  : {threshold:.2f}")
     print()
 
-    if probabilities is not None:
+    if show_proba:
         print("  Confidence breakdown:")
-        for cls_label, prob in zip(classes, probabilities):
+        for cls_label, prob in zip(classes, proba):
             s, lbl, _ = SCORE_LABELS[cls_label]
             bar = "█" * int(prob * 20) + "░" * (20 - int(prob * 20))
-            print(f"    {lbl:<10} [{bar}] {prob * 100:5.1f}%")
+            # Mark the threshold line on the bar for the predicted class
+            marker = " ◀ gated" if (gated and cls_label == raw_label) else ""
+            print(f"    {lbl:<10} [{bar}] {prob * 100:5.1f}%{marker}")
         print()
 
     print(f"  Index values used ({source}):")
@@ -232,6 +265,9 @@ Examples:
   Manual fallback (values must match --list-features order):
     python3 src/predict.py --manual 18500 18.5 35.2 20.1 19.3 0.31
 
+  Override the confidence threshold (default loaded from model bundle):
+    python3 src/predict.py --threshold 0.50
+
   Suppress confidence breakdown:
     python3 src/predict.py --no-proba
         """
@@ -250,6 +286,17 @@ Examples:
         "--list-features",
         action="store_true",
         help="Print the feature columns the loaded model was trained on, then exit.",
+    )
+    parser.add_argument(
+        "--threshold", "-t",
+        type=float,
+        default=None,
+        metavar="FLOAT",
+        help=(
+            "Confidence threshold for directional predictions (0.0–1.0). "
+            "Predictions below this fall back to Neutral. "
+            "Defaults to the value optimised by train.py and saved in the model bundle."
+        ),
     )
     parser.add_argument(
         "--no-proba",
@@ -274,6 +321,7 @@ def main():
     if args.list_features:
         print(f"\nModel      : {bundle.get('model_name', 'Unknown')}")
         print(f"Classes    : {bundle['classes']}")
+        print(f"Threshold  : {bundle.get('confidence_threshold', 'not set — re-run train.py')}")
         print(f"\nFeature columns ({len(bundle['feature_columns'])}) in order:")
         for i, col in enumerate(bundle["feature_columns"]):
             ticker = INDEX_TICKERS.get(col, "(derived — not live-fetchable)")
@@ -281,9 +329,20 @@ def main():
         print()
         sys.exit(0)
 
+    # Resolve threshold: CLI arg > bundle value > hard fallback
+    if args.threshold is not None:
+        threshold = args.threshold
+        print(f"Using threshold from --threshold flag: {threshold:.2f}")
+    elif "confidence_threshold" in bundle:
+        threshold = bundle["confidence_threshold"]
+        print(f"Using threshold from model bundle: {threshold:.2f}")
+    else:
+        threshold = 0.40
+        print(f"WARNING: no threshold in bundle — using fallback {threshold:.2f}. "
+              f"Re-run train.py to generate an optimised value.")
+
     feature_columns = bundle["feature_columns"]
 
-    # Manual mode: user supplies every feature value in order
     if args.manual:
         if len(args.manual) != len(feature_columns):
             print(f"ERROR: --manual expects {len(feature_columns)} values "
@@ -295,8 +354,6 @@ def main():
         print("\nUsing manually provided values:")
         for col, val in raw_values.items():
             print(f"  {col}: {val}")
-
-    # Live mode (default): fetch what we can, fill derived columns from training mean
     else:
         try:
             raw_values = fetch_live_values(feature_columns)
@@ -307,7 +364,8 @@ def main():
             sys.exit(1)
 
     X_scaled = build_feature_vector(raw_values, bundle)
-    print_prediction(raw_values, X_scaled, bundle, source, show_proba=not args.no_proba)
+    print_prediction(raw_values, X_scaled, bundle, source,
+                     show_proba=not args.no_proba, threshold=threshold)
 
 
 if __name__ == "__main__":

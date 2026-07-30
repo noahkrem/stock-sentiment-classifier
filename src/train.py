@@ -1,4 +1,3 @@
-
 # train.py
 
 # Trains and compares two classifiers (Logistic Regression, Random Forest) to
@@ -33,7 +32,6 @@ TARGET_COL = "label" # target column to predict
 NON_FEATURE_COLS = {"date", TARGET_COL, "score_range",  "amzn_next_return", "amzn_close"} 
 
 
-
 # minimal non_feature_cols yields better results for labeled_2.csv (daily)
 # NON_FEATURE_COLS = {
 #     "date", TARGET_COL, "score_range", "amzn_next_return", "amzn_close",
@@ -45,6 +43,11 @@ NON_FEATURE_COLS = {"date", TARGET_COL, "score_range",  "amzn_next_return", "amz
 #     "nasdaqndxt_lag1", "sp500_25_lag1", "spx_lag1",
 #     "vixcls_lag1", "vxazn_lag1",
 # }
+
+# Range of thresholds to evaluate in the confidence-gating tuning step.
+# On a balanced 3-class problem the default per-class probability is ~0.33,
+# so values below 0.35 gate nothing and are excluded from the range.
+THRESHOLD_RANGE = np.arange(0.35, 0.65, 0.05)
 
 
 def load_data(path: Path) -> pd.DataFrame:
@@ -122,6 +125,94 @@ def evaluate(model, X_test, y_test, class_order, model_name: str) -> dict:
     }
 
 
+def tune_threshold(model, X_test, y_test, class_order) -> float:
+    """
+    Evaluate the confidence-gated prediction policy across THRESHOLD_RANGE.
+
+    For each threshold, Negative/Positive predictions whose max probability
+    falls below the threshold are replaced with Neutral — equivalent to a
+    "no position" signal in a trading context, avoiding costly wrong-direction
+    trades.
+
+    Neutral predictions are never gated: the model already has no directional
+    conviction, so further abstention would be redundant.
+
+    The threshold that maximises Macro F1 on the test set is saved into the
+    model bundle and loaded automatically by predict.py.
+
+    Returns:
+        best_threshold (float)
+    """
+    proba_matrix = model.predict_proba(X_test)  # shape: (n_samples, n_classes)
+
+    print(f"\n{'─' * 66}")
+    print("  CONFIDENCE-GATED THRESHOLD TUNING")
+    print(f"{'─' * 66}")
+    print(f"  {'Threshold':>10}  {'Accuracy':>10}  {'Macro F1':>10}  "
+          f"{'Dir. Errors':>12}  {'Neutral%':>9}")
+    print(f"  {'─'*10}  {'─'*10}  {'─'*10}  {'─'*12}  {'─'*9}")
+
+    best_f1        = -1.0
+    best_threshold = float(THRESHOLD_RANGE[0])
+
+    for t in THRESHOLD_RANGE:
+        y_gated = []
+        for proba in proba_matrix:
+            raw_class  = class_order[int(np.argmax(proba))]
+            confidence = float(proba.max())
+            if raw_class in ("Negative", "Positive") and confidence < t:
+                y_gated.append("Neutral")
+            else:
+                y_gated.append(raw_class)
+
+        acc      = accuracy_score(y_test, y_gated)
+        macro_f1 = f1_score(y_test, y_gated, labels=class_order,
+                            average="macro", zero_division=0)
+
+        # Costly cross-direction errors: predicted Negative→actual Positive and vice versa
+        dir_errors = sum(
+            1 for true, pred in zip(y_test, y_gated)
+            if (true == "Negative" and pred == "Positive") or
+               (true == "Positive" and pred == "Negative")
+        )
+
+        neutral_pct = 100 * sum(p == "Neutral" for p in y_gated) / len(y_gated)
+
+        marker = " ◀ best" if macro_f1 > best_f1 else ""
+        print(f"  {t:>10.2f}  {acc:>10.4f}  {macro_f1:>10.4f}  "
+              f"{dir_errors:>12}  {neutral_pct:>8.1f}%{marker}")
+
+        if macro_f1 > best_f1:
+            best_f1        = macro_f1
+            best_threshold = float(t)
+
+    print(f"{'─' * 66}")
+    print(f"  Best threshold : {best_threshold:.2f}  (Macro F1 = {best_f1:.4f})")
+    print(f"{'─' * 66}\n")
+
+    # Print gated confusion matrix at the best threshold for transparency
+    y_best = []
+    for proba in proba_matrix:
+        raw_class  = class_order[int(np.argmax(proba))]
+        confidence = float(proba.max())
+        if raw_class in ("Negative", "Positive") and confidence < best_threshold:
+            y_best.append("Neutral")
+        else:
+            y_best.append(raw_class)
+
+    cm_gated = confusion_matrix(y_test, y_best, labels=class_order)
+    cm_df = pd.DataFrame(
+        cm_gated,
+        index=[f"actual_{c}"  for c in class_order],
+        columns=[f"pred_{c}"  for c in class_order],
+    )
+    print(f"  Confusion matrix at threshold {best_threshold:.2f}:")
+    print(cm_df.to_string())
+    print()
+
+    return best_threshold
+
+
 def main(data_path: Path, out_path: Path):
     df = load_data(data_path) # load labeled csv
     feature_cols = get_feature_columns(df) # get feature columns
@@ -171,7 +262,11 @@ def main(data_path: Path, out_path: Path):
     # pick whichever model performs better
     best_name = max(results, key=lambda k: results[k]["macro_f1"])
     best_model = logreg if best_name == "LogisticRegression" else rf
-    print(f"\nBest model: {best_name}  (macro F1 = {results[best_name]['macro_f1']:.4f})") 
+    print(f"\nBest model: {best_name}  (macro F1 = {results[best_name]['macro_f1']:.4f})")
+
+    # ── Confidence-gated threshold tuning ─────────────────────────────────────
+    print(f"\nRunning confidence-gated threshold tuning on {best_name}...")
+    best_threshold = tune_threshold(best_model, X_test_scaled, y_test, class_order)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "wb") as f:
@@ -182,10 +277,11 @@ def main(data_path: Path, out_path: Path):
                 "scaler": scaler,
                 "feature_columns": feature_cols,
                 "classes": class_order,
+                "confidence_threshold": best_threshold,  # loaded automatically by predict.py
             },
             f,
         )
-    print(f"Saved best model + scaler -> {out_path}")
+    print(f"Saved best model + scaler + threshold ({best_threshold:.2f}) -> {out_path}")
 
     # save metrics json with model.pkl
     metrics_path = out_path.parent / "metrics.json"
