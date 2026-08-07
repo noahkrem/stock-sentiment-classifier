@@ -114,36 +114,31 @@ def compute_features(df: pd.DataFrame, lag_days: int) -> pd.DataFrame:
 
 # ── Step 3: Compute Daily Targets & Quantile Labels ───────────────────────────
 
-def compute_daily_labels(df: pd.DataFrame) -> pd.DataFrame:
+def compute_daily_labels(df: pd.DataFrame, threshold: float = 0.015) -> pd.DataFrame:
     """
-    Calculates next-day AMZN return: (AMZN_Tomorrow / AMZN_Today) - 1
-    Labels each row based on daily return quantiles.
+    Calculates two-stage targets:
+    1. stage1_significant: 1 if |return| > threshold, else 0 (Volatility/Movement filter)
+    2. stage2_direction: 1 if return > 0, else 0 (Up vs Down direction)
     """
-    # Look forward 1 trading day for target return
+    # Calculate next-day return
     df["amzn_next_return"] = df["amzn"].shift(-1) / df["amzn"] - 1
 
-    # Drop target NaN (last row) to compute clean percentile boundaries
-    valid_returns = df["amzn_next_return"].dropna()
-    neg_threshold = valid_returns.quantile(NEGATIVE_PERCENTILE)
-    pos_threshold = valid_returns.quantile(POSITIVE_PERCENTILE)
+    # Stage 1: Is the move significant?
+    df["stage1_significant"] = (df["amzn_next_return"].abs() > threshold).astype(int)
 
-    print("\nDaily Label Quantile Thresholds:")
-    print(f"  Negative : return < {neg_threshold:.4f} ({NEGATIVE_PERCENTILE*100:.0f}th percentile)")
-    print(f"  Neutral  : {neg_threshold:.4f} <= return <= {pos_threshold:.4f}")
-    print(f"  Positive : return > {pos_threshold:.4f} ({POSITIVE_PERCENTILE*100:.0f}th percentile)")
+    # Stage 2: Up vs Down Direction (Binary)
+    df["stage2_direction"] = (df["amzn_next_return"] > 0).astype(int)
 
-    def assign_label(ret):
-        if pd.isna(ret):
-            return np.nan
-        if ret > pos_threshold:
-            return "Positive"
-        if ret < neg_threshold:
-            return "Negative"
+    # Keep original 3-class label if needed for legacy comparison
+    def assign_legacy_label(ret):
+        if pd.isna(ret): return np.nan
+        if ret > threshold: return "Positive"
+        if ret < -threshold: return "Negative"
         return "Neutral"
 
-    df["label"] = df["amzn_next_return"].apply(assign_label)
+    df["label"] = df["amzn_next_return"].apply(assign_legacy_label)
 
-    # Drop boundary rows (where lag or future return are missing)
+    # Clean missing boundary values
     df = df.dropna().reset_index(drop=True)
     return df
 

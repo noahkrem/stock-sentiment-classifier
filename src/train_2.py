@@ -32,7 +32,8 @@ TARGET_COL = "label" # Target column to predict
 NON_FEATURE_COLS = {
     "date",
     TARGET_COL,
-    "score_range",
+    "stage1_significant", #Target for Stage 1
+    "stage2_direction",   #Tagrget for stage 2
     "amzn_next_return",
     "amzn_close",
     "amzn",
@@ -75,7 +76,7 @@ def to_jsonable(obj):
         return obj.tolist()
     return obj
 
-
+'''
 def evaluate(model, X_test, y_test, class_order, model_name: str, label_encoder: LabelEncoder = None) -> dict:
     y_pred = model.predict(X_test) 
 
@@ -121,8 +122,37 @@ def evaluate(model, X_test, y_test, class_order, model_name: str, label_encoder:
         "per_class_f1": {cls: report[cls]["f1-score"] for cls in class_order},
         "classification_report": report,
     }
+'''
 
+def evaluate_binary(model, X_test, y_test, model_name: str) -> dict:
+    """Evaluates binary performance for Stage 1 or Stage 2 models."""
+    y_pred = model.predict(X_test) 
 
+    acc = accuracy_score(y_test, y_pred)
+    macro_f1 = f1_score(y_test, y_pred, average="macro", zero_division=0)
+    cm = confusion_matrix(y_test, y_pred)
+
+    report = classification_report(
+        y_test, y_pred, output_dict=True, zero_division=0
+    )
+
+    print(f"\n{'=' * 60}")
+    print(model_name)
+    print("=" * 60)
+    print(f"Accuracy : {acc:.4f}")
+    print(f"Macro F1 : {macro_f1:.4f}")
+    print("\nConfusion Matrix [TN, FP / FN, TP]:")
+    print(cm)
+
+    return {
+        "model_name": model_name,
+        "accuracy": acc,
+        "macro_f1": macro_f1,
+        "confusion_matrix": cm.tolist(),
+        "classification_report": report,
+    }
+
+'''
 def main(data_path: Path, out_path: Path):
     df = load_data(data_path)
     feature_cols = get_feature_columns(df)
@@ -233,5 +263,136 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=Path("data/processed/labeled_2_normalized.csv"))
     parser.add_argument("--out", type=Path, default=Path("models/model_2.pkl"))
+    args = parser.parse_args()
+    main(args.data, args.out)
+'''
+
+def main(data_path: Path, out_path: Path):
+    df = load_data(data_path)
+    feature_cols = get_feature_columns(df)
+
+    # Ensure required targets exist
+    required_targets = ["stage1_significant", "stage2_direction"]
+    for tgt in required_targets:
+        if tgt not in df.columns:
+            raise KeyError(f"Missing expected target column '{tgt}' in dataset. Run updated label_data_2.py first.")
+
+    before = len(df)
+    df = df.dropna(subset=feature_cols + required_targets).reset_index(drop=True)
+    dropped = before - len(df)
+    if dropped:
+        print(f"Dropped {dropped} row(s) with missing values in features or targets.")
+
+    print(f"Dataset shape: {df.shape}")
+    print(f"Feature columns ({len(feature_cols)}): {feature_cols}")
+
+    X = df[feature_cols].to_numpy()
+    y_stage1 = df["stage1_significant"].to_numpy().astype(int)
+    y_stage2 = df["stage2_direction"].to_numpy().astype(int)
+
+    # --- 1. CHRONOLOGICAL TIME-SERIES SPLIT ---
+    split_idx = int(len(df) * (1 - TEST_SIZE))
+    
+    X_train, X_test = X[:split_idx], X[split_idx:]
+    y1_train, y1_test = y_stage1[:split_idx], y_stage1[split_idx:]
+    y2_train, y2_test = y_stage2[:split_idx], y_stage2[split_idx:]
+    
+    print(f"\nTime-Series Split Successful:")
+    print(f"  Training samples (Historical): {len(X_train)} rows")
+    print(f"  Testing samples (Future):     {len(X_test)} rows")
+
+    # --- 2. FIT SCALER EXCLUSIVELY ON HISTORICAL TRAIN DATA ---
+    scaler = StandardScaler() 
+    X_train_scaled = scaler.fit_transform(X_train) 
+    X_test_scaled = scaler.transform(X_test) 
+
+    # =========================================================================
+    # STAGE 1: SIGNIFICANT MOVEMENT DETECTOR (|Return| > Threshold)
+    # =========================================================================
+    print("\n" + "#" * 60)
+    print("  STAGE 1: VOLATILITY / SIGNIFICANT MOVEMENT DETECTOR")
+    print("#" * 60)
+    print("Class distribution (Stage 1 Train):", np.bincount(y1_train))
+
+    stage1_model = XGBClassifier(
+        n_estimators=300,
+        learning_rate=0.02,
+        max_depth=3,
+        subsample=0.7,
+        colsample_bytree=0.7,
+        reg_alpha=0.1,
+        reg_lambda=1.0,
+        random_state=RANDOM_STATE,
+        eval_metric="logloss"
+    )
+    stage1_model.fit(X_train_scaled, y1_train)
+
+    stage1_metrics = evaluate_binary(
+        stage1_model, X_test_scaled, y1_test, "Stage 1 Model: Volatility Detector (XGBoost)"
+    )
+
+    # =========================================================================
+    # STAGE 2: DIRECTIONAL CLASSIFIER (UP vs DOWN on High-Volatility Days)
+    # =========================================================================
+    print("\n" + "#" * 60)
+    print("  STAGE 2: DIRECTIONAL CLASSIFIER (Filtered High-Volatility Days)")
+    print("#" * 60)
+
+    # Mask dataset to include ONLY high-volatility days (stage1_significant == 1)
+    train_mask = (y1_train == 1)
+    test_mask = (y1_test == 1)
+
+    X_train_s2 = X_train_scaled[train_mask]
+    y2_train_filtered = y2_train[train_mask]
+
+    X_test_s2 = X_test_scaled[test_mask]
+    y2_test_filtered = y2_test[test_mask]
+
+    print(f"Filtered Stage 2 Training Samples (High Move Only): {len(X_train_s2)} rows")
+    print(f"Filtered Stage 2 Testing Samples  (High Move Only): {len(X_test_s2)} rows")
+
+    stage2_model = RandomForestClassifier(
+        n_estimators=300, 
+        class_weight="balanced", 
+        max_depth=5, 
+        random_state=RANDOM_STATE
+    )
+    stage2_model.fit(X_train_s2, y2_train_filtered)
+
+    stage2_metrics = evaluate_binary(
+        stage2_model, X_test_s2, y2_test_filtered, "Stage 2 Model: Direction Classifier (Random Forest)"
+    )
+
+    # Combine Results
+    results = {
+        "stage1_volatility_detector": stage1_metrics,
+        "stage2_directional_classifier": stage2_metrics
+    }
+
+    # Save artifact pipeline
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "wb") as f:
+        pickle.dump(
+            {
+                "stage1_model": stage1_model,
+                "stage2_model": stage2_model,
+                "scaler": scaler,
+                "feature_columns": feature_cols,
+            },
+            f,
+        )
+    print(f"\nSaved two-stage pipeline model + scaler -> {out_path}")
+
+    # Save metrics JSON
+    metrics_path = out_path.parent / "metrics_2stage.json"
+    with open(metrics_path, "w") as f:
+        json.dump(to_jsonable(results), f, indent=2)
+    print(f"Saved full metrics -> {metrics_path}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data", type=Path, default=Path("data/processed/labeled_2_normalized.csv"))
+    parser.add_argument("--out", type=Path, default=Path("models/model_2stage.pkl"))
     args = parser.parse_args()
     main(args.data, args.out)
