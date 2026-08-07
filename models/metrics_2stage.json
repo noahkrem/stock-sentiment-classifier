@@ -1,0 +1,86 @@
+{
+  "stage1_volatility_detector": {
+    "model_name": "Stage 1 Model: Volatility Detector (XGBoost)",
+    "accuracy": 0.6103225806451613,
+    "macro_f1": 0.5483892130530086,
+    "confusion_matrix": [
+      [
+        380,
+        109
+      ],
+      [
+        193,
+        93
+      ]
+    ],
+    "classification_report": {
+      "0": {
+        "precision": 0.6631762652705061,
+        "recall": 0.7770961145194274,
+        "f1-score": 0.7156308851224106,
+        "support": 489.0
+      },
+      "1": {
+        "precision": 0.4603960396039604,
+        "recall": 0.32517482517482516,
+        "f1-score": 0.38114754098360654,
+        "support": 286.0
+      },
+      "accuracy": 0.6103225806451613,
+      "macro avg": {
+        "precision": 0.5617861524372333,
+        "recall": 0.5511354698471262,
+        "f1-score": 0.5483892130530086,
+        "support": 775.0
+      },
+      "weighted avg": {
+        "precision": 0.5883438207019486,
+        "recall": 0.6103225806451613,
+        "f1-score": 0.5921957413498972,
+        "support": 775.0
+      }
+    }
+  },
+  "stage2_directional_classifier": {
+    "model_name": "Stage 2 Model: Direction Classifier (Random Forest)",
+    "accuracy": 0.45104895104895104,
+    "macro_f1": 0.4230536960180914,
+    "confusion_matrix": [
+      [
+        96,
+        29
+      ],
+      [
+        128,
+        33
+      ]
+    ],
+    "classification_report": {
+      "0": {
+        "precision": 0.42857142857142855,
+        "recall": 0.768,
+        "f1-score": 0.5501432664756447,
+        "support": 125.0
+      },
+      "1": {
+        "precision": 0.532258064516129,
+        "recall": 0.20496894409937888,
+        "f1-score": 0.29596412556053814,
+        "support": 161.0
+      },
+      "accuracy": 0.45104895104895104,
+      "macro avg": {
+        "precision": 0.4804147465437788,
+        "recall": 0.4864844720496895,
+        "f1-score": 0.4230536960180914,
+        "support": 286.0
+      },
+      "weighted avg": {
+        "precision": 0.48694047887596265,
+        "recall": 0.45104895104895104,
+        "f1-score": 0.40705640742902877,
+        "support": 286.0
+      }
+    }
+  }
+}

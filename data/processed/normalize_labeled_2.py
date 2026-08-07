@@ -26,13 +26,62 @@ Outputs:
                                    inference/prediction transforms.
 ===============================================================================
 """
-
-import joblib
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import RobustScaler, StandardScaler
+#import joblib
+#from sklearn.preprocessing import RobustScaler, StandardScaler
 
 
+def prepare_financial_dataset(
+    input_filepath='data/processed/labeled_2.csv',
+    output_filepath='data/processed/labeled_2_normalized.csv',
+):
+    """Loads financial dataset, applies non-leaking mathematical transformations
+
+    (Log1p on volume features), and exports the dataset.
+
+    Note: Parametric scaling (StandardScaler, RobustScaler) is deliberately
+    omitted here to prevent train-test data leakage.
+    """
+    # 1. Load Dataset
+    print(f"Loading raw features from '{input_filepath}'...")
+    df = pd.read_csv(input_filepath)
+    df_prepared = df.copy()
+
+    # 2. Apply non-leaking mathematical transforms (Log1p on Trading Volume)
+    raw_volume_cols = [
+        'amzn_volume',
+        'amzn_volume_lag1',
+        'ixic_volume',
+        'ixic_volume_lag1',
+    ]
+
+    print("Applying Log1p transformation to Trading Volume features...")
+    for col in raw_volume_cols:
+        if col in df_prepared.columns:
+            df_prepared[col] = np.log1p(df_prepared[col].values)
+
+    # 3. Export Prepared Dataset
+    # Scalers (StandardScaler / RobustScaler) will be fitted exclusively inside train_2.py on X_train
+    df_prepared.to_csv(output_filepath, index=False)
+
+    print("\n--- Feature Preparation Complete ---")
+    print(f"✅ Clean dataset saved to : '{output_filepath}'")
+    print("   Standard/Robust scaling deferred to train_2.py post train/test split.\n")
+
+    return df_prepared
+
+
+if __name__ == '__main__':
+    # Execute feature preparation pipeline
+    prepared_df = prepare_financial_dataset()
+
+    # Display sample output
+    print("Sample Prepared Output (First 3 Rows):")
+    print(prepared_df[['date', 'amzn', 'amzn_volume', 'vixcls', 'label']].head(3))
+
+
+'''
 def normalize_financial_dataset(
     input_filepath='labeled_2.csv',
     output_filepath='labeled_2_normalized.csv',
@@ -107,3 +156,7 @@ if __name__ == '__main__':
     # Display sample output
     print("Sample Normalized Output (First 3 Rows):")
     print(normalized_df[['date', 'amzn', 'amzn_volume', 'vixcls', 'label']].head(3))
+'''
+
+
+
