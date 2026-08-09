@@ -15,6 +15,7 @@ mdurl==0.1.2
 multitasking==0.0.13
 narwhals==2.22.1
 numpy==2.4.6
+nvidia-nccl-cu13==2.30.7
 packaging==26.2
 pandas==3.0.3
 peewee==4.1.0
@@ -30,11 +31,12 @@ requests==2.34.2
 rich==15.0.0
 scikit-learn==1.9.0
 scipy==1.18.0
+seaborn==0.13.2
 six==1.17.0
 soupsieve==2.8.4
 threadpoolctl==3.6.0
 typing_extensions==4.15.0
 urllib3==2.7.0
 websockets==16.0
+xgboost==3.4.0
 yfinance==1.4.1
-xgboost==3.1.1
