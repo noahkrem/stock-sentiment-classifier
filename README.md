@@ -1,3 +1,26 @@
+# Quickstart (Linux)
+
+- **Create & activate a virtual environment**
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+- **Install dependencies**
+
+```bash
+pip install -r requirements.txt
+```
+
+- **Run prediction with the included pre-trained model**
+
+```bash
+python3 src/predict.py
+```
+
+The repository includes a ready-to-use model at `models/model.pkl`. Use `--list-features` to view the feature order or `--manual VALUE1 VALUE2 ...` to provide values manually.
+
 # stock-sentiment-classifier
 
 ## Setup
