@@ -15,7 +15,6 @@ mdurl==0.1.2
 multitasking==0.0.13
 narwhals==2.22.1
 numpy==2.4.6
-nvidia-nccl-cu13==2.30.7
 packaging==26.2
 pandas==3.0.3
 peewee==4.1.0
@@ -40,3 +39,4 @@ urllib3==2.7.0
 websockets==16.0
 xgboost==3.4.0
 yfinance==1.4.1
+nvidia-nccl-cu13==2.30.7
